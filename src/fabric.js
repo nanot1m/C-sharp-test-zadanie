@@ -112,5 +112,5 @@ module.exports = file => {
    * function(prefix){} - returns list of words
    * starting by prefix sorted by weights
    */
-  return prefix => hashTable[prefix];
+  return prefix => hashTable[prefix] || [];
 };
