@@ -3,11 +3,11 @@ const fs = require('fs');
 function sortByWeight(word1, word2) {
   return word1.weight > word2.weight;
 }
-
 /**
  * adding word to array with weight checking
  * @param wordArray
  * @param word
+ * @param weight
  * @returns {Array.<T>}
  */
 
@@ -18,7 +18,7 @@ function addWordToResult(wordArray, word, weight) {
   const obj = {
     value: word,
     weight: weight,
-  }
+  };
 
   if (res.length < 10) {
     res = wordArray.concat(obj);
@@ -89,7 +89,7 @@ function addToTrie(word, weight, trie) {
   let cur = trie;
   for (let index = 0; index < word.length; index++) {
     let letter = word[index];
-    cur[letter] = cur[letter] || {};
+    cur[letter] = cur[letter] || Object.create(null);
     if (index === word.length - 1) {
       cur[letter].weight = weight;
     } else {
@@ -106,7 +106,7 @@ function addToTrie(word, weight, trie) {
  */
 function formTrie(words) {
   'use strict';
-  let trie = {};
+  let trie = Object.create(null);
   const now = new Date();
   words.forEach(wordWithWeight => {
     /**
@@ -115,7 +115,7 @@ function formTrie(words) {
     const matches = wordWithWeight.match(/(\w+)(\s)(\d+)/);
     trie = addToTrie(matches[1] /* word */, matches[3] /* weight */, trie)
   });
-  console.log((new Date() - now) / 1000 + ' s');
+  console.info('\x1b[36m Trie formed: ' + (new Date() - now) + ' ms\x1b[0m');
   return trie;
 }
 
@@ -127,21 +127,28 @@ function formTrie(words) {
  */
 module.exports = file => {
   'use strict';
-  const lines = fs.readFileSync(file)
-    .toString()
-    .split('\n');
+  const lines = fs.readFileSync(file).toString().split('\n');
   const wordsCount = Number(lines[0]);
   const words = lines.slice(1, wordsCount + 1);
 
   const trie = formTrie(words);
+
+  // fs.writeFile('trie.json', JSON.stringify(trie, null, 2));
+
+  /**
+   * Hash table of results
+   */
+  const resHash = Object.create(null);
 
   /**
    * function(prefix){} - returns list of words
    * starting by prefix sorted by weights
    */
   return prefix => {
+    if (prefix in resHash) return resHash[prefix];
+
     const leaf = getCurrentLeaf(trie, prefix);
     if (!leaf) return false;
-    return findWordsInLeaf(leaf, prefix).map(word => word.value);
+    return resHash[prefix] = findWordsInLeaf(leaf, prefix).map(word => word.value);
   };
 };
