@@ -4,18 +4,30 @@ function sortByWeight(word1, word2) {
   return word1.weight > word2.weight;
 }
 
-function addWordToResult(wordArray, word) {
+/**
+ * adding word to array with weight checking
+ * @param wordArray
+ * @param word
+ * @returns {Array.<T>}
+ */
+
+function addWordToResult(wordArray, word, weight) {
   'use strict';
   let res = wordArray;
 
+  const obj = {
+    value: word,
+    weight: weight,
+  }
+
   if (res.length < 10) {
-    res = wordArray.concat(word);
+    res = wordArray.concat(obj);
   } else {
     const first = wordArray[0];
     const last = wordArray[wordArray.length - 1];
 
-    if ((word.weight > last.weight) && (word.weight < first.weight)) {
-      res = wordArray.concat(word);
+    if ((weight > last.weight) && (weight < first.weight)) {
+      res = wordArray.concat(obj);
     }
   }
 
@@ -55,7 +67,7 @@ function findWordsInLeaf(leaf, prefix) {
   let res = [];
   for (let letter in leaf) {
     if (letter === 'weight') {
-      res = addWordToResult(res, prefix);
+      res = addWordToResult(res, prefix, leaf[letter]);
     } else {
       let word = prefix + letter;
       res = res.concat(findWordsInLeaf(leaf[letter], word))
@@ -130,6 +142,6 @@ module.exports = file => {
   return prefix => {
     const leaf = getCurrentLeaf(trie, prefix);
     if (!leaf) return false;
-    return findWordsInLeaf(leaf, prefix);
+    return findWordsInLeaf(leaf, prefix).map(word => word.value);
   };
 };
