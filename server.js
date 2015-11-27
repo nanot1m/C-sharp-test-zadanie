@@ -4,16 +4,26 @@ const dict = fabric('test.in');
 
 const port = 5000;
 
+var clientCount = 0;
+
 net.createServer((socket) => {
-  socket.setEncoding('utf8');
-  socket.write('Welcome, friend!\n')
+  socket.setEncoding('cp1251');
+  socket.write('Welcome, friend!\n');
+  clientCount++;
+  console.log('Clients count: %d', clientCount);
 
   socket.on('data', (data) => {
+    console.log(data);
     if (data.indexOf('get') === 0) {
       const prefix = data.slice(4, -2);
       socket.write(dict(prefix).join('\n') + '\n');
     }
   });
+
+  socket.on('end', () => {
+    clientCount--;
+    console.log('Clients count: %d', clientCount);
+  })
 
 }).listen(port);
 

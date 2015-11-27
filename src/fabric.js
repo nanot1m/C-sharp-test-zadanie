@@ -1,91 +1,110 @@
 const fs = require('fs');
 
-function getArrayLastItem(arr) {
-  return arr[arr.length - 1];
+function sortByWeight(word1, word2) {
+  return word1.weight > word2.weight;
 }
 
-/**
- * Removes not suitable level items
- * and returns last matched
- *
- * level = ['a', 'aa', 'aaab']
- * prefix = 'aab'
- * level -> ['a', 'aa']
- * @returns 'aa'
- */
-function getLevelPrefix(level, prefix) {
-  if (!level.length) return undefined;
-  while ((prefix.indexOf(getArrayLastItem(level)) === -1) && level.length) {
-    level.pop();
+function addWordToResult(wordArray, word) {
+  'use strict';
+  let res = wordArray;
+
+  if (res.length < 10) {
+    res = wordArray.concat(word);
+  } else {
+    const first = wordArray[0];
+    const last = wordArray[wordArray.length - 1];
+
+    if ((word.weight > last.weight) && (word.weight < first.weight)) {
+      res = wordArray.concat(word);
+    }
   }
-  return getArrayLastItem(level);
+
+  return res.sort(sortByWeight).slice(0,10);
 }
 
 /**
- * Sort array by weights in strings
- * @param {Array<string>} array - string with weight 'aaa 8321\r'
- * @returns {Array<string>}
+ * Checks if prefix in trie
+ * @param trie
+ * @param prefix
+ * @returns {Object} leaf matches prefix
  */
-function sortByWeight(array) {
-  return array.sort((v1,v2) => parseInt(v1.split(' ')[1]) < parseInt(v2.split(' ')[1]));
+function getCurrentLeaf(trie, prefix) {
+  'use strict';
+  let cur = trie;
+
+  const isInTree = prefix.split('').every(letter => {
+    if (cur[letter]) {
+      cur = cur[letter];
+      return true
+    }
+  });
+  if (isInTree) return cur;
+
+  return false;
 }
 
 /**
- * Returns array without weights
- * @param {Array<string>} array - array of strings with weights 'aaa 8321\r'
- * @returns {Array<string>}
+ * Returns an array of words with weight in leaf
+ * @param leaf
+ * @param prefix
+ * @returns {Array}
  */
-function removeWeights(array) {
-  return array.map(val => val.split(' ')[0]);
-}
+function findWordsInLeaf(leaf, prefix) {
+  'use strict';
 
-/**
- * Filter words with prefix,
- * sort with weights and removes weights from words
- * if not sorted
- *
- * @param {Array<string>} words
- * @param {string} prefix
- * @returns {Array<string>}
- */
-function getWordsByPrefix(words, prefix) {
-  const filtered = words.filter(word => word.indexOf(prefix) === 0);
-  if (filtered[0] && filtered[0].split(' ').length === 2) {
-    const sorted = sortByWeight(filtered);
-    return removeWeights(sorted);
+  let res = [];
+  for (let letter in leaf) {
+    if (letter === 'weight') {
+      res = addWordToResult(res, prefix);
+    } else {
+      let word = prefix + letter;
+      res = res.concat(findWordsInLeaf(leaf[letter], word))
+    }
   }
-  return filtered;
+
+  return res;
 }
 
-function deduplicateArray(array) {
-  return Object.keys(array.reduce((res, next) => {
-    res[next] = true;
-    return res;
-  }, {}));
+/**
+ * Adds current word to trie
+ * @param word
+ * @param weight
+ * @param trie
+ * @returns {Object} trie
+ */
+function addToTrie(word, weight, trie) {
+  'use strict';
+  let cur = trie;
+  for (let index = 0; index < word.length; index++) {
+    let letter = word[index];
+    cur[letter] = cur[letter] || {};
+    if (index === word.length - 1) {
+      cur[letter].weight = weight;
+    } else {
+      cur = cur[letter];
+    }
+  }
+  return trie;
 }
 
 /**
  * Forms hash table: {<prefix>: <Array<words>>}
  * @param {Array<string>} words - list of strings with weights
- * @param {Array<string>} prefixes - sorted list of prefixes
- * @returns {Object} hash table
+ * @returns {Object} trie
  */
-function formHashTable(words, prefixes) {
-  const hashTable = Object.create(null);
-  const level = [];
-  prefixes.forEach(prefix => {
-    const levelPrefix = getLevelPrefix(level, prefix);
-    if (levelPrefix) {
-      hashTable[prefix] = getWordsByPrefix(
-        hashTable[levelPrefix],
-        prefix
-      );
-    } else {
-      hashTable[prefix] = getWordsByPrefix(words, prefix);
-    }
-    level.push(prefix);
+function formTrie(words) {
+  'use strict';
+  let trie = {};
+  const now = new Date();
+  words.forEach(wordWithWeight => {
+    /**
+     * matches 'string 789' -> ['string 789', 'string', ' ', '789']
+     */
+    const matches = wordWithWeight.match(/(\w+)(\s)(\d+)/);
+    trie = addToTrie(matches[1] /* word */, matches[3] /* weight */, trie)
   });
-  return hashTable;
+  console.log((new Date() - now) / 1000 + ' s');
+  return trie;
 }
 
 /**
@@ -96,21 +115,21 @@ function formHashTable(words, prefixes) {
  */
 module.exports = file => {
   'use strict';
-  const lines = fs.readFileSync(file).toString().split('\n');
+  const lines = fs.readFileSync(file)
+    .toString()
+    .split('\n');
   const wordsCount = Number(lines[0]);
   const words = lines.slice(1, wordsCount + 1);
-  const prefixCount = Number(lines[wordsCount + 1]);
-  const prefixes = deduplicateArray(
-    lines
-      .slice(wordsCount + 2, wordsCount + 2 + prefixCount)
-      .map(val => val.replace('\r', ''))
-  ).sort();
 
-  const hashTable = formHashTable(words, prefixes);
+  const trie = formTrie(words);
 
   /**
    * function(prefix){} - returns list of words
    * starting by prefix sorted by weights
    */
-  return prefix => hashTable[prefix] || [];
+  return prefix => {
+    const leaf = getCurrentLeaf(trie, prefix);
+    if (!leaf) return false;
+    return findWordsInLeaf(leaf, prefix);
+  };
 };
