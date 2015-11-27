@@ -34,6 +34,6 @@ module.exports = file => {
 
     const leaf = getCurrentLeaf(trie, prefix);
     if (!leaf) return '\n';
-    return resHash[prefix] = findWordsInLeaf(leaf, prefix);
+    return resHash[prefix] = findWordsInLeaf(leaf, prefix).map(word => word.value).join('\n');
   };
 };

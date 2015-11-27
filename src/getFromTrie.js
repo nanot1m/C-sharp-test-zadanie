@@ -15,7 +15,7 @@ function addWordToResult(wordArray, word, weight) {
 
   if (!wordArray.length) return [obj];
 
-  for (let index = 0; (index < wordArray.length) && (index < 10); index++) {
+  for (let index = 0; index < wordArray.length; index++) {
     if (Number(weight) > Number(wordArray[index].weight)) {
       return wordArray.slice(0, index).concat(obj, wordArray.slice(index, 10))
     }
