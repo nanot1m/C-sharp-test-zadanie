@@ -28,7 +28,7 @@ function addToTrie(word, weight, trie) {
 module.exports = function(words) {
   'use strict';
   let trie = Object.create(null);
-  const now = new Date();
+  console.time('trie-' + words.length);
   words.forEach(wordWithWeight => {
     /**
      * matches 'string 789' -> ['string 789', 'string', ' ', '789']
@@ -36,6 +36,6 @@ module.exports = function(words) {
     const matches = wordWithWeight.match(/(\w+)(\s)(\d+)/);
     trie = addToTrie(matches[1] /* word */, matches[3] /* weight */, trie)
   });
-  console.info('\x1b[36m Trie formed: ' + (new Date() - now) + ' ms\x1b[0m');
+  console.timeEnd('trie-' + words.length);
   return trie;
 };
