@@ -15,7 +15,7 @@ net.createServer((socket) => {
   socket.on('data', (data) => {
     if (data.indexOf('get') === 0) {
       const prefix = data.slice(4, -2);
-      socket.write(dict(prefix).join('\n') + '\n');
+      socket.write(dict(prefix) + '\n');
     }
   });
 
